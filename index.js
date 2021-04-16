@@ -1,12 +1,13 @@
 'use strict';
 
-//Loading dependencies & initializing express
-var os = require('os');
-var express = require('express');
-var app = express();
-var http = require('http');
-//For signalling in WebRTC
-var socketIO = require('socket.io');
+const os = require('os');
+const express = require('express');
+const app = express();
+const http = require('http');
+
+const socketIO = require('socket.io');
+
+const port = process.env.PORT || 3001;
 
 
 app.use(express.static('public'))
@@ -24,8 +25,6 @@ var io = socketIO(server);
 io.sockets.on('connection', function(socket) {
 
 	// Convenience function to log server messages on the client.
-	// Arguments is an array like object which contains all the arguments of log(). 
-	// To push all the arguments of log() in array, we have to use apply().
 	function log() {
 	  var array = ['Message from server:'];
 	  array.push.apply(array, arguments);
@@ -60,17 +59,6 @@ io.sockets.on('connection', function(socket) {
 		io.sockets.in(room).emit('ready');
 	  } else { // max two clients
 		socket.emit('full', room);
-	  }
-	});
-  
-	socket.on('ipaddr', function() {
-	  var ifaces = os.networkInterfaces();
-	  for (var dev in ifaces) {
-		ifaces[dev].forEach(function(details) {
-		  if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
-			socket.emit('ipaddr', details.address);
-		  }
-		});
 	  }
 	});
   
