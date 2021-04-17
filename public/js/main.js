@@ -94,6 +94,7 @@ navigator.mediaDevices
   .getUserMedia(localStreamConstraints)
   .then(gotStream)
   .catch(function (e) {
+    console.log(e);
     alert("getUserMedia() error: " + e.name);
   });
 
@@ -195,6 +196,7 @@ function handleRemoteStreamAdded(event) {
   console.log("Remote stream added.");
   remoteStream = event.stream;
   remoteVideo.srcObject = remoteStream;
+  window.rStream = remoteStream;
 }
 
 function handleRemoteStreamRemoved(event) {
@@ -220,22 +222,45 @@ function stop() {
 }
 
 var mediaRecorder;
+var mediaRemoteRecorder;
 var recordedBlobs;
+var recordedRemoteBlobs;
 
-const recordButton = document.querySelector('button#record');
+const recordButton = document.querySelector("button#record");
 recordButton.addEventListener("click", () => {
   if (recordButton.textContent === "Start Recording") {
     startRecording();
   } else {
     stopRecording();
     recordButton.textContent = "Start Recording";
+    playButton.disabled = false;
     downloadButton.disabled = false;
   }
 });
 
+const playButton = document.querySelector('button#play');
+playButton.addEventListener('click', () => {
+  playRecord(recordedBlobs, localVideo);
+  playRecord(recordedRemoteBlobs, remoteVideo);
+});
+
+function playRecord(blobs, video) {
+  const superBuffer = new Blob(blobs, {type: 'video/webm'});
+  video.src = null;
+  video.srcObject = null;
+  video.src = window.URL.createObjectURL(superBuffer);
+  video.controls = true;
+  video.play();
+}
+
 const downloadButton = document.querySelector("button#download");
 downloadButton.addEventListener("click", () => {
-  const blob = new Blob(recordedBlobs, { type: "video/webm" });
+  downloadVideo(recordedBlobs);
+  downloadVideo(recordedRemoteBlobs);
+});
+
+function downloadVideo(blobs) {
+  const blob = new Blob(blobs, { type: "video/webm" });
   const url = window.URL.createObjectURL(blob);
   const a = document.createElement("a");
   a.style.display = "none";
@@ -247,17 +272,27 @@ downloadButton.addEventListener("click", () => {
     document.body.removeChild(a);
     window.URL.revokeObjectURL(url);
   }, 100);
-});
+}
 
 function handleDataAvailable(event) {
   console.log("handleDataAvailable", event);
   if (event.data && event.data.size > 0) {
+    console.log('event.data', event.data)
     recordedBlobs.push(event.data);
+  }
+}
+
+function handleRemoteDataAvailable(event) {
+  console.log("handleDataAvailable", event);
+  if (event.data && event.data.size > 0) {
+    console.log('event.data', event.data)
+    recordedRemoteBlobs.push(event.data);
   }
 }
 
 function startRecording() {
   recordedBlobs = [];
+  recordedRemoteBlobs = [];
   let options = { mimeType: "video/webm;codecs=vp9,opus" };
   if (!MediaRecorder.isTypeSupported(options.mimeType)) {
     console.error(`${options.mimeType} is not supported`);
@@ -274,6 +309,7 @@ function startRecording() {
 
   try {
     mediaRecorder = new MediaRecorder(window.stream, options);
+    mediaRemoteRecorder = new MediaRecorder(window.rStream, options);
   } catch (e) {
     console.error("Exception while creating MediaRecorder:", e);
     return;
@@ -282,15 +318,24 @@ function startRecording() {
   console.log("Created MediaRecorder", mediaRecorder, "with options", options);
   recordButton.textContent = "Stop Recording";
   downloadButton.disabled = true;
+  playButton.disabled = true;
   mediaRecorder.onstop = (event) => {
     console.log("Recorder stopped: ", event);
     console.log("Recorded Blobs: ", recordedBlobs);
   };
+  mediaRemoteRecorder.onstop = (event) => {
+    console.log("Recorder stopped: ", event);
+    console.log("Recorded remote Blobs: ", recordedRemoteBlobs);
+  };
   mediaRecorder.ondataavailable = handleDataAvailable;
+  mediaRemoteRecorder.ondataavailable = handleRemoteDataAvailable;
   mediaRecorder.start();
+  mediaRemoteRecorder.start();
   console.log("MediaRecorder started", mediaRecorder);
+  console.log("MediaRemoteRecorder started", mediaRemoteRecorder);
 }
 
 function stopRecording() {
   mediaRecorder.stop();
+  mediaRemoteRecorder.stop();
 }

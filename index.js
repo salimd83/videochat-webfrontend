@@ -7,8 +7,6 @@ const http = require('http');
 
 const socketIO = require('socket.io');
 
-const port = process.env.PORT || 3001;
-
 
 app.use(express.static('public'))
 
@@ -18,7 +16,7 @@ app.get("/", function(req, res){
 
 var server = http.createServer(app);
 
-server.listen(process.env.PORT || 8000);
+server.listen(process.env.PORT || 8001);
 
 var io = socketIO(server);
 
@@ -59,6 +57,17 @@ io.sockets.on('connection', function(socket) {
 		io.sockets.in(room).emit('ready');
 	  } else { // max two clients
 		socket.emit('full', room);
+	  }
+	});
+  
+	socket.on('ipaddr', function() {
+	  var ifaces = os.networkInterfaces();
+	  for (var dev in ifaces) {
+		ifaces[dev].forEach(function(details) {
+		  if (details.family === 'IPv4' && details.address !== '127.0.0.1') {
+			socket.emit('ipaddr', details.address);
+		  }
+		});
 	  }
 	});
   
