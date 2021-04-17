@@ -102,7 +102,7 @@ navigator.mediaDevices
 function gotStream(stream) {
   console.log("Adding local stream.");
   localStream = stream;
-  window.stream = stream;
+  // window.stream = stream;
   localVideo.srcObject = stream;
   sendMessage("got user media", room);
   if (isInitiator) {
@@ -196,7 +196,7 @@ function handleRemoteStreamAdded(event) {
   console.log("Remote stream added.");
   remoteStream = event.stream;
   remoteVideo.srcObject = remoteStream;
-  window.rStream = remoteStream;
+  // window.rStream = remoteStream;
 }
 
 function handleRemoteStreamRemoved(event) {
@@ -308,8 +308,8 @@ function startRecording() {
   }
 
   try {
-    mediaRecorder = new MediaRecorder(window.stream, options);
-    mediaRemoteRecorder = new MediaRecorder(window.rStream, options);
+    mediaRecorder = new MediaRecorder(localStream, options);
+    mediaRemoteRecorder = new MediaRecorder(remoteStream, options);
   } catch (e) {
     console.error("Exception while creating MediaRecorder:", e);
     return;
